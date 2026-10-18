@@ -172,3 +172,4 @@ button.share-btn:hover { filter: brightness(.94); }
 button.share-btn svg { width: 18px; height: 18px; fill: #fff; }
 button.gmail { background: #d93025; }
 button.outlook { background: #0f6cbd; }
+button.word { background: #185abd; }

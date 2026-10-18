@@ -2,7 +2,8 @@
 const VERSION = "__BUILD__";
 const CACHE = `pdf-markup-${VERSION}`;
 const CORE = [
-  "./", "index.html", "styles.css", "app.js", "platform.js", "pdfcore.js",
+  "./", "index.html", "styles.css", "app.js", "platform.js", "pdfcore.js", "toword.js",
+  "vendor/docx/index.mjs",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png",
   "vendor/pdfjs/build/pdf.min.mjs", "vendor/pdfjs/build/pdf.worker.min.mjs",
   "vendor/mupdf/mupdf.js", "vendor/mupdf/mupdf-wasm.js", "vendor/mupdf/mupdf-wasm.wasm",

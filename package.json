@@ -6,15 +6,15 @@
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "test": "node test/core.test.mjs",
+    "test": "node test/core.test.mjs && node test/word.test.mjs",
     "build": "node scripts/build-web.mjs",
     "serve": "node scripts/build-web.mjs && python -m http.server 8080 -d _site"
   },
   "dependencies": {
+    "docx": "^9.12.0",
     "mupdf": "1.28.1",
     "pdfjs-dist": "5.7.284"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/prasadbhandary-source/pdf-markup-windows.git"

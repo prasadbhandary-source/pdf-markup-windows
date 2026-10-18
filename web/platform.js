@@ -234,6 +234,43 @@ export const api = {
     return { status: "ok", downloaded: file.name };
   },
 
+  /** Converts the open PDF to Word and saves it. Returns { status, name, pages, scannedPages }. */
+  convertToWord: async (id, onProgress) => {
+    const d = docs.get(id);
+    if (!d) return { status: "error", message: "The document is no longer open." };
+    const name = d.ref.name.replace(/\.pdf$/i, "") + ".docx";
+    const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    // Ask where to save first, while the click still counts as the user's action.
+    let target = null;
+    if (hasPickers) {
+      try {
+        target = await window.showSaveFilePicker({
+          id: "pdf-markup-word", suggestedName: name,
+          types: [{ description: "Word document", accept: { [DOCX]: [".docx"] } }],
+        });
+      } catch {
+        return { status: "cancelled" };
+      }
+    }
+    try {
+      const { pdfToDocx } = await import("./toword.js");
+      const r = await pdfToDocx(d.bytes.slice(), d.password, onProgress);
+      if (target) {
+        const w = await target.createWritable();
+        await w.write(r.bytes);
+        await w.close();
+      } else {
+        const url = URL.createObjectURL(new Blob([r.bytes], { type: DOCX }));
+        const a = document.createElement("a");
+        a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      return { status: "ok", name: target?.name || name, downloaded: !target, pages: r.pages, scannedPages: r.scannedPages };
+    } catch (e) {
+      return { status: "error", message: `Couldn't convert: ${e?.message || e}` };
+    }
+  },
+
   /** The annotated PDF as a File, for sending. */
   exportFile: (id, marks, sizes) => {
     const d = docs.get(id);

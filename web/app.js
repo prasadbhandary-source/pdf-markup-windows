@@ -1009,6 +1009,34 @@ async function sendOutlook() {
     <li>Pick the file from <b>Downloads</b>, add the recipient and press <b>Send</b>.</li></ol>`);
 }
 
+async function convertToWord() {
+  if (!doc) return;
+  busy("Converting to Word…");
+  let r;
+  try {
+    r = await api.convertToWord(doc.id, (i, n) => busy(n > 1 ? `Converting page ${Math.min(i + 1, n)} of ${n}…` : "Converting to Word…"));
+  } finally {
+    busy(null);
+  }
+  if (r.status === "cancelled") return;
+  if (r.status !== "ok") {
+    await info("Couldn't convert", `<p>${escapeHtml(r.message)}</p>`);
+    return;
+  }
+  const where = r.downloaded ? `to your Downloads folder as “${escapeHtml(r.name)}”` : `as “${escapeHtml(r.name)}”`;
+  const notes = [];
+  if (r.scannedPages) {
+    notes.push(r.scannedPages === r.pages
+      ? "This PDF is a scan or picture, so its pages went in as pictures — the text isn't editable."
+      : `${r.scannedPages} of the ${r.pages} pages ${r.scannedPages === 1 ? "is a scan, so it went in as a picture" : "are scans, so they went in as pictures"}.`);
+  }
+  if (marks.length) notes.push("Your pen marks, highlights and notes aren't included — the Word file has the document's own content.");
+  await info("Converted to Word", `<p>Saved ${where}. Open it in Word to edit.</p>
+    ${notes.map((n) => `<p class="muted small">${n}</p>`).join("")}
+    <p class="muted small">Layouts with columns or tables may need some tidying in Word.</p>`);
+}
+
+$("word-btn").addEventListener("click", convertToWord);
 $("gmail-btn").addEventListener("click", sendGmail);
 $("outlook-btn").addEventListener("click", sendOutlook);
 $("save-btn").addEventListener("click", () => save(false));

@@ -22,6 +22,10 @@ so Windows security can't block it.
 - Undo/redo, zoom (Ctrl + scroll, pinch, Ctrl +/−, Ctrl+0), page jump.
 - **Save** (Ctrl+S) writes real PDF annotations into the original file; **Save a copy** makes a new one.
 - **WhatsApp**: opens the Windows Share window with the annotated PDF — pick WhatsApp.
+- **Gmail** / **Outlook**: Outlook gets the PDF attached via the Share window; Gmail opens a new
+  message with the PDF saved to Downloads, ready to attach.
+- **Word**: converts the PDF to an editable Word document (text, fonts, pictures, page sizes).
+  Scanned pages go in as pictures.
 - Annotations from the Android app stay editable here and vice versa.
 - Unsaved work is kept as a draft; Recent remembers your page.
 

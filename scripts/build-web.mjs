@@ -19,6 +19,15 @@ const core = fs.readFileSync("pdfcore.js", "utf8").replace('from "mupdf"', 'from
 if (!core.includes("./vendor/mupdf/mupdf.js")) throw new Error("pdfcore import not rewritten");
 fs.writeFileSync(path.join(out, "pdfcore.js"), core);
 
+// The Word converter, pointed at the browser copies of its libraries.
+const word = fs.readFileSync("toword.js", "utf8")
+  .replace('from "mupdf"', 'from "./vendor/mupdf/mupdf.js"')
+  .replace(/from "docx"/, 'from "./vendor/docx/index.mjs"');
+if (!word.includes("./vendor/docx/index.mjs")) throw new Error("toword import not rewritten");
+fs.writeFileSync(path.join(out, "toword.js"), word);
+copy("node_modules/docx/dist/index.mjs", "vendor/docx/index.mjs");
+copy("node_modules/docx/LICENSE", "vendor/docx/LICENSE");
+
 for (const f of ["mupdf.js", "mupdf-wasm.js", "mupdf-wasm.wasm"]) copy(`node_modules/mupdf/dist/${f}`, `vendor/mupdf/${f}`);
 copy("node_modules/mupdf/LICENSE", "vendor/mupdf/LICENSE");
 for (const f of ["pdf.min.mjs", "pdf.worker.min.mjs"]) copy(`node_modules/pdfjs-dist/legacy/build/${f}`, `vendor/pdfjs/build/${f}`);
