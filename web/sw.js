@@ -19,19 +19,28 @@ self.addEventListener("activate", (e) => {
   })());
 });
 
+// App files: always try the network first so updates arrive straight away; the
+// offline copy is the fallback. Large libraries (vendor/) come from the cache first.
 self.addEventListener("fetch", (e) => {
   const req = e.request;
-  if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
+  const vendor = url.pathname.includes("/vendor/");
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const hit = await cache.match(req, { ignoreSearch: true });
-    if (hit) return hit;
+    if (vendor) {
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+    }
     try {
-      const res = await fetch(req);
-      if (res.ok) cache.put(req, res.clone()); // fonts and character maps are cached as they're used
+      const res = await fetch(req, vendor ? undefined : { cache: "no-cache" });
+      if (res.ok) cache.put(req, res.clone());
       return res;
     } catch {
-      return (await cache.match("index.html")) || Response.error();
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      if (req.mode === "navigate") return (await cache.match("index.html")) || Response.error();
+      return Response.error();
     }
   })());
 });

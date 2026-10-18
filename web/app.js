@@ -961,6 +961,56 @@ async function sendWhatsApp() {
     <p>Open the chat you want, drag the file in (or click the paperclip and pick it), then press <b>Send</b>.</p>`);
 }
 
+async function prepareFile() {
+  busy("Preparing…");
+  try {
+    return api.exportFile(doc.id, marks, doc.sizes);
+  } catch (e) {
+    await info("Couldn't prepare the file", `<p>${escapeHtml(e?.message || e)}</p>`);
+    return null;
+  } finally {
+    busy(null);
+  }
+}
+
+async function sendGmail() {
+  if (!doc) return;
+  const file = await prepareFile();
+  if (!file) return;
+  await api.downloadFile(file);
+  const subject = encodeURIComponent(file.name.replace(/\.pdf$/i, ""));
+  api.openLink(`https://mail.google.com/mail/?view=cm&fs=1&su=${subject}`);
+  await info("Send by Gmail", `
+    <p>A new Gmail message is opening, and the PDF${marks.length ? " with your annotations" : ""} was saved to your Downloads folder as “${escapeHtml(file.name)}”.</p>
+    <ol><li>In the message, click the <b>paperclip</b> (Attach files).</li>
+    <li>Pick “${escapeHtml(file.name)}” from <b>Downloads</b>, or drag it in from the browser's download list.</li>
+    <li>Add the recipient and press <b>Send</b>.</li></ol>`);
+}
+
+async function sendOutlook() {
+  if (!doc) return;
+  const file = await prepareFile();
+  if (!file) return;
+  if (api.canShareFile(file)) {
+    // Windows Share window: Outlook attaches the file itself.
+    let r = await api.shareNow(file);
+    if (r === "blocked") {
+      await info("Send by Outlook", `<p>Click <b>OK</b>, then pick <b>Outlook</b> in the Share window. The PDF will already be attached.</p>`);
+      r = await api.shareNow(file);
+    }
+    if (r === "ok" || r === "cancelled") return;
+  }
+  await api.downloadFile(file);
+  const subject = encodeURIComponent(file.name.replace(/\.pdf$/i, ""));
+  api.openLink(`https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}`);
+  await info("Send by Outlook", `
+    <p>A new Outlook message is opening on the web, and the PDF was saved to your Downloads folder as “${escapeHtml(file.name)}”.</p>
+    <ol><li>Click <b>Attach</b> (paperclip) → <b>Browse this computer</b>.</li>
+    <li>Pick the file from <b>Downloads</b>, add the recipient and press <b>Send</b>.</li></ol>`);
+}
+
+$("gmail-btn").addEventListener("click", sendGmail);
+$("outlook-btn").addEventListener("click", sendOutlook);
 $("save-btn").addEventListener("click", () => save(false));
 $("saveas-btn").addEventListener("click", () => save(true));
 $("wa-btn").addEventListener("click", sendWhatsApp);
@@ -1076,8 +1126,19 @@ $("install-btn").addEventListener("click", async () => {
 });
 if (installed()) $("install-tip").innerHTML = "You can also right-click a PDF in File Explorer and choose <b>Open with → PDF Markup</b>.";
 if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("sw.js").catch((e) => console.warn("Offline support unavailable", e));
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+    .then((reg) => reg.update())
+    .catch((e) => console.warn("Offline support unavailable", e));
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return; // first install, nothing to refresh
+    if (dirty) toast("An update is ready. Save your work, then close and reopen PDF Markup.", 8000);
+    else location.reload();
+  });
 }
+fetch("version.txt", { cache: "no-store" }).then((r) => (r.ok ? r.text() : "")).then((v) => {
+  if (v.trim()) $("version").textContent = `Version ${v.trim()}`;
+}).catch(() => {});
 
 // ---- start ---------------------------------------------------------------------------
 refreshToolUi();

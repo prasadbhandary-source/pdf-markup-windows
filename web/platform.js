@@ -137,7 +137,8 @@ export const api = {
     if (r.status !== "ok") return r;
     const id = nextDocId++;
     docs.clear();
-    docs.set(id, { ref, bytes, password: password || null });
+    // Keep a private copy for saving, so nothing the viewer does to its copy can affect it.
+    docs.set(id, { ref, bytes: bytes.slice(), password: password || null });
     await remember(ref);
     let marks = r.marks;
     let restored = false;
@@ -150,7 +151,7 @@ export const api = {
     const page = (await findRecent(ref))?.page || 0;
     return {
       status: "ok", id, name: ref.name, path: ref,
-      viewBytes: r.viewBytes, marks, restored, pageSizes: r.pageSizes, page,
+      viewBytes: r.viewBytes === bytes ? bytes.slice() : r.viewBytes, marks, restored, pageSizes: r.pageSizes, page,
     };
   },
 
@@ -233,12 +234,26 @@ export const api = {
     return { status: "ok", downloaded: file.name };
   },
 
+  /** The annotated PDF as a File, for sending. */
+  exportFile: (id, marks, sizes) => {
+    const d = docs.get(id);
+    if (!d) throw new Error("The document is no longer open.");
+    const out = writeAnnotated(d.bytes, d.password, marks, sizes);
+    return new File([out], pdfName(d.ref.name), { type: "application/pdf" });
+  },
+  canShareFile: (file) => !!navigator.canShare?.({ files: [file] }),
+  downloadFile: async (file) => download(new Uint8Array(await file.arrayBuffer()), file.name),
+  openLink: (url) => window.open(url, "_blank", "noopener"),
+
+  /** Opens the Windows Share window. Returns "ok", "cancelled", "blocked" (needs a fresh click) or "failed". */
   shareNow: async (file) => {
     try {
       await navigator.share({ files: [file], title: file.name });
-      return true;
-    } catch {
-      return false;
+      return "ok";
+    } catch (e) {
+      if (e?.name === "AbortError") return "cancelled";
+      if (e?.name === "NotAllowedError") return "blocked";
+      return "failed";
     }
   },
 
