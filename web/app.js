@@ -1,10 +1,9 @@
 // PDF Markup — the window: viewer, tools and annotation editing.
-import * as pdfjsLib from "../node_modules/pdfjs-dist/build/pdf.min.mjs";
+import * as pdfjsLib from "./vendor/pdfjs/build/pdf.min.mjs";
+import { api } from "./platform.js";
 
-const PDFJS = new URL("../node_modules/pdfjs-dist/", import.meta.url).href;
+const PDFJS = new URL("./vendor/pdfjs/", import.meta.url).href;
 pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "build/pdf.worker.min.mjs";
-
-const api = window.api;
 const $ = (id) => document.getElementById(id);
 
 // ---- constants (shared with the Android app) ----------------------------------------
@@ -222,7 +221,7 @@ async function loadPdfjs(bytes) {
 async function openPath(path) {
   if (!path) return;
   if (!(await confirmUnsaved("Save before opening another file?"))) return;
-  const name = path.split(/[\\/]/).pop();
+  const name = api.nameOf(path);
   let password = null;
   let r;
   busy(`Opening ${name}…`);
@@ -924,6 +923,11 @@ async function save(saveAs) {
     $("doc-name").textContent = r.name;
     api.setTitle(`${r.name} — PDF Markup`);
     setDirty(false);
+    if (r.downloaded) {
+      await info("Saved to Downloads", `<p>Your browser can't save straight into files, so the annotated PDF was saved to your Downloads folder as “${escapeHtml(r.downloaded)}”.</p>`);
+      setDirty(false);
+      return true;
+    }
     toast(saveAs ? `Saved a copy: ${r.name}` : "Saved");
     return true;
   } finally {
@@ -940,28 +944,25 @@ async function sendWhatsApp() {
   } finally {
     busy(null);
   }
+  if (r.status === "cancelled" || (r.status === "ok" && r.shared)) return;
+  if (r.status === "retry") {
+    // The share window needs a fresh click.
+    await info("Ready to share", `<p>Click <b>OK</b>, then pick <b>WhatsApp</b> in the Share window.</p>`);
+    await api.shareNow(r.file);
+    return;
+  }
   if (r.status !== "ok") {
     await info("Couldn't send", `<p>${escapeHtml(r.message)}</p>`);
     return;
   }
-  const where = r.opened === "app" ? "WhatsApp" : "WhatsApp Web (in your browser)";
-  if (r.copied) {
-    await info("Ready to send in WhatsApp", `
-      <p>The PDF${marks.length ? ", with your annotations," : ""} is copied, and ${where} is opening.</p>
-      <ol><li>Open the chat you want.</li><li>Press <b>Ctrl+V</b> to paste the PDF.</li><li>Press <b>Send</b>.</li></ol>
-      ${r.opened === "app" ? "" : '<p class="muted small">Tip: install WhatsApp from the Microsoft Store to send straight from the app.</p>'}`);
-  } else {
-    api.showInFolder(r.file);
-    await info("Ready to send in WhatsApp", `
-      <p>${where} is opening, and a folder with the PDF is open.</p>
-      <p>Drag the file into the chat, then press <b>Send</b>.</p>`);
-  }
+  await info("Send in WhatsApp", `
+    <p>The PDF${marks.length ? ", with your annotations," : ""} was saved to your Downloads folder as “${escapeHtml(r.downloaded)}”, and WhatsApp Web is opening.</p>
+    <p>Open the chat you want, drag the file in (or click the paperclip and pick it), then press <b>Send</b>.</p>`);
 }
 
 $("save-btn").addEventListener("click", () => save(false));
 $("saveas-btn").addEventListener("click", () => save(true));
 $("wa-btn").addEventListener("click", sendWhatsApp);
-$("folder-btn").addEventListener("click", () => doc && api.showInFolder(doc.path));
 $("undo-btn").addEventListener("click", undo);
 $("redo-btn").addEventListener("click", redo);
 $("zoom-in").addEventListener("click", () => zoomStep(1));
@@ -1027,7 +1028,7 @@ async function refreshRecents() {
       <div class="meta"><div class="name"></div><div class="sub"></div></div>
       <button class="icon" title="Remove from list"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>`;
     li.querySelector(".name").textContent = r.name;
-    li.querySelector(".sub").textContent = `${timeAgo(r.time)}${r.page ? ` · page ${r.page + 1}` : ""} · ${r.path}`;
+    li.querySelector(".sub").textContent = `${timeAgo(r.time)}${r.page ? ` · page ${r.page + 1}` : ""}`;
     li.addEventListener("click", () => openPath(r.path));
     li.querySelector("button").addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -1047,8 +1048,7 @@ window.addEventListener("drop", (e) => {
   e.preventDefault();
   dragDepth = 0;
   $("drop-hint").hidden = true;
-  const f = [...(e.dataTransfer?.files || [])].find((x) => /\.pdf$/i.test(x.name)) || e.dataTransfer?.files?.[0];
-  if (f) openPath(api.pathForFile(f));
+  api.refFromDrop(e.dataTransfer).then((ref) => { if (ref) openPath(ref); });
 });
 
 // ---- window events ---------------------------------------------------------------------
@@ -1056,6 +1056,27 @@ api.onOpenRequest((p) => openPath(p));
 api.onCloseRequested(async () => {
   if (await confirmUnsaved("Save before closing?")) api.forceClose();
 });
+
+// ---- install & offline -----------------------------------------------------------------
+let installPrompt = null;
+const installed = () => matchMedia("(display-mode: standalone)").matches;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $("install-card").hidden = installed();
+});
+window.addEventListener("appinstalled", () => { $("install-card").hidden = true; installPrompt = null; });
+$("install-btn").addEventListener("click", async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => {});
+  installPrompt = null;
+  $("install-card").hidden = true;
+});
+if (installed()) $("install-tip").innerHTML = "You can also right-click a PDF in File Explorer and choose <b>Open with → PDF Markup</b>.";
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch((e) => console.warn("Offline support unavailable", e));
+}
 
 // ---- start ---------------------------------------------------------------------------
 refreshToolUi();

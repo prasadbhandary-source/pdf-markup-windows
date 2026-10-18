@@ -1,4 +1,4 @@
 node_modules/
+_site/
 dist/
 test/out/
-*.pdfmarkup-tmp

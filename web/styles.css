@@ -157,3 +157,8 @@ dialog .actions { display: flex; gap: 8px; margin-top: 18px; align-items: center
   display: grid; place-items: center; font-size: 22px; font-weight: 600; color: var(--brand-dark);
   background: rgba(255,255,255,.85); pointer-events: none;
 }
+
+#install-card {
+  margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+}
+#install-card p { margin: 4px 0 10px; }

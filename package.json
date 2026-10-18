@@ -1,64 +1,20 @@
 {
   "name": "pdf-markup",
-  "productName": "PDF Markup",
   "version": "1.0.0",
-  "description": "Open and annotate PDF files",
+  "description": "Open and annotate PDF files \u2014 installable web app for Windows",
   "author": "prasadbhandary-source",
   "license": "AGPL-3.0-or-later",
   "type": "module",
-  "main": "main.js",
   "scripts": {
-    "start": "electron .",
     "test": "node test/core.test.mjs",
-    "dist": "electron-builder --win nsis --x64 --arm64 --publish never"
+    "build": "node scripts/build-web.mjs",
+    "serve": "node scripts/build-web.mjs && python -m http.server 8080 -d _site"
   },
   "dependencies": {
     "mupdf": "1.28.1",
     "pdfjs-dist": "5.7.284"
   },
-  "devDependencies": {
-    "electron": "44.9.0",
-    "electron-builder": "26.15.3"
-  },
-  "build": {
-    "appId": "com.prasadbhandary.pdfmarkup",
-    "productName": "PDF Markup",
-    "files": [
-      "main.js",
-      "preload.cjs",
-      "pdfcore.js",
-      "renderer/**/*",
-      "package.json",
-      "!**/node_modules/@napi-rs/**"
-    ],
-    "asarUnpack": [
-      "**/node_modules/mupdf/**"
-    ],
-    "directories": {
-      "buildResources": "build",
-      "output": "dist"
-    },
-    "win": {
-      "icon": "build/icon.png",
-      "artifactName": "PDF-Markup-Setup-${version}.${ext}"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "PDF Markup"
-    },
-    "fileAssociations": [
-      {
-        "ext": "pdf",
-        "name": "PDF Document",
-        "description": "PDF document",
-        "role": "Editor"
-      }
-    ],
-    "publish": null
-  },
+  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/prasadbhandary-source/pdf-markup-windows.git"

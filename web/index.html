@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' file: data: blob:; script-src 'self' file: blob: 'wasm-unsafe-eval'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob:; font-src 'self' file: data: blob:; worker-src 'self' file: blob:; connect-src 'self' file: data: blob:">
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' data: blob:; frame-src https://web.whatsapp.com">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#c6372e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
   <title>PDF Markup</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,14 +17,19 @@
   <main id="home">
     <div class="home-inner">
       <div class="brand">
-        <img src="icon.png" alt="" width="56" height="56">
+        <img src="icon-192.png" alt="" width="56" height="56">
         <div>
           <h1>PDF Markup</h1>
           <p class="muted">Open any PDF, then write, highlight and add notes.</p>
         </div>
       </div>
       <button id="open-btn" class="primary big">Open a PDF <span class="kbd">Ctrl+O</span></button>
-      <p class="muted small">…or drag a PDF onto this window. You can also right-click a PDF in File Explorer and choose <b>Open with → PDF Markup</b>.</p>
+      <p class="muted small">…or drag a PDF onto this window. <span id="install-tip">Once installed, you can also right-click a PDF in File Explorer and choose <b>Open with → PDF Markup</b>.</span></p>
+      <div id="install-card" hidden>
+        <b>Install PDF Markup on this computer</b>
+        <p class="muted small">Gets its own window and Start menu icon, works offline, and appears in “Open with” for PDFs.</p>
+        <button id="install-btn" class="primary">Install</button>
+      </div>
       <h2 id="recent-title" hidden>Recent</h2>
       <ul id="recent-list"></ul>
     </div>
@@ -53,7 +62,6 @@
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.04 2 11c0 2.4 1.05 4.58 2.77 6.19L4 22l4.6-2.3c1.07.29 2.21.45 3.4.45 5.52 0 10-4.04 10-9S17.52 2 12 2z"/></svg>
           WhatsApp
         </button>
-        <button id="folder-btn" class="icon" title="Show in File Explorer"><svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></button>
       </div>
     </header>
 
