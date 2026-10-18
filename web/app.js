@@ -206,7 +206,8 @@ async function askPassword(name, wrong) {
 
 async function loadPdfjs(bytes) {
   const task = pdfjsLib.getDocument({
-    data: bytes,
+    // pdf.js takes ownership of the buffer it's given, so hand it a copy and keep the original for saving.
+    data: new Uint8Array(bytes),
     cMapUrl: PDFJS + "cmaps/",
     cMapPacked: true,
     standardFontDataUrl: PDFJS + "standard_fonts/",
