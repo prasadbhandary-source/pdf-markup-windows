@@ -15,7 +15,8 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
+    // Only remove this app's own old caches — other apps share this web address.
+    for (const k of await caches.keys()) if (k.startsWith("pdf-markup-") && k !== CACHE) await caches.delete(k);
     await self.clients.claim();
   })());
 });
