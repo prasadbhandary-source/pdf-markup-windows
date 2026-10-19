@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' data: blob:; frame-src https://web.whatsapp.com">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#c6372e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <title>PDF Markup</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Home -->
+  <main id="home">
+    <div class="home-inner">
+      <div class="brand">
+        <img src="icon-192.png" alt="" width="56" height="56">
+        <div>
+          <h1>PDF Markup</h1>
+          <p class="muted">Open any PDF, then write, highlight and add notes.</p>
+        </div>
+      </div>
+      <button id="open-btn" class="primary big">Open a PDF <span class="kbd">Ctrl+O</span></button>
+      <p class="muted small">…or drag a PDF onto this window. <span id="install-tip">Once installed, you can also right-click a PDF in File Explorer and choose <b>Open with → PDF Markup</b>.</span></p>
+      <div id="install-card" hidden>
+        <b>Install PDF Markup on this computer</b>
+        <p class="muted small">Gets its own window and Start menu icon, works offline, and appears in “Open with” for PDFs.</p>
+        <button id="install-btn" class="primary">Install</button>
+      </div>
+      <h2 id="recent-title" hidden>Recent</h2>
+      <ul id="recent-list"></ul>
+      <p id="version" class="muted small"></p>
+    </div>
+  </main>
+
+  <!-- Document -->
+  <section id="doc" hidden>
+    <header class="bar top">
+      <button id="home-btn" class="icon" title="Back to start (close this file)"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="title">
+        <span id="doc-name"></span><span id="dirty-dot" title="Unsaved changes" hidden>●</span>
+      </div>
+      <div class="group pager">
+        <input id="page-input" type="text" inputmode="numeric" aria-label="Page"> <span>/ <span id="page-count"></span></span>
+      </div>
+      <div class="group">
+        <button id="zoom-out" class="icon" title="Zoom out (Ctrl −)"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></button>
+        <button id="zoom-label" class="text-btn" title="Fit width (Ctrl+0)">100%</button>
+        <button id="zoom-in" class="icon" title="Zoom in (Ctrl +)"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+      </div>
+      <div class="spacer"></div>
+      <div class="group">
+        <button id="undo-btn" class="icon" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+        <button id="redo-btn" class="icon" title="Redo (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+      </div>
+      <div class="group">
+        <button id="save-btn" class="primary" title="Save (Ctrl+S)">Save</button>
+        <button id="saveas-btn" class="text-btn" title="Save a copy (Ctrl+Shift+S)">Save a copy</button>
+        <button id="wa-btn" class="wa" title="Send via WhatsApp">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.04 2 11c0 2.4 1.05 4.58 2.77 6.19L4 22l4.6-2.3c1.07.29 2.21.45 3.4.45 5.52 0 10-4.04 10-9S17.52 2 12 2z"/></svg>
+          WhatsApp
+        </button>
+        <button id="word-btn" class="share-btn word" title="Convert to an editable Word document">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1.5 16h-1.3l-1.2-4.4L8.8 18H7.5L5.8 11h1.4l1 4.6 1.2-4.6h1.2l1.2 4.6 1-4.6h1.4l-1.7 7zM13 9V3.5L18.5 9H13z"/></svg>
+          Word
+        </button>
+        <button id="gmail-btn" class="share-btn gmail" title="Send by Gmail">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          Gmail
+        </button>
+        <button id="outlook-btn" class="share-btn outlook" title="Send by Outlook">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          Outlook
+        </button>
+      </div>
+    </header>
+
+    <div class="bar tools">
+      <div class="group tool-group" role="radiogroup" aria-label="Tool">
+        <button class="tool" data-tool="hand" title="Move (V)">
+          <svg viewBox="0 0 24 24"><path d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"/></svg><span>Move</span></button>
+        <button class="tool" data-tool="pen" title="Pen (P)">
+          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg><span>Pen</span></button>
+        <button class="tool" data-tool="highlight" title="Highlighter (H)">
+          <svg viewBox="0 0 24 24"><path d="M6 14l3 3v5h6v-5l3-3V9H6v5zm5-12h2v3h-2V2zM3.5 5.88l1.41-1.41 2.12 2.12L5.62 8 3.5 5.88zm13.46.71l2.12-2.12 1.41 1.41L18.38 8l-1.42-1.41z"/></svg><span>Highlight</span></button>
+        <button class="tool" data-tool="text" title="Text (T)">
+          <svg viewBox="0 0 24 24"><path d="M2.5 4v3h5v12h3V7h5V4h-13zm19 5h-9v3h3v7h3v-7h3V9z"/></svg><span>Text</span></button>
+        <button class="tool" data-tool="eraser" title="Eraser (E)">
+          <svg viewBox="0 0 24 24"><path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53c-1.56 1.56-4.1 1.56-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0zM4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-4.95-4.95-4.95 4.95z"/></svg><span>Eraser</span></button>
+      </div>
+      <div class="group" id="swatches"></div>
+      <label class="group size-group" id="size-group">
+        <span id="size-label">Thickness</span>
+        <input id="size-slider" type="range">
+        <span id="size-value" class="num"></span>
+      </label>
+      <div class="spacer"></div>
+      <label class="group toggle" title="When off, fingers scroll and zoom; draw with the pen or mouse">
+        <input id="finger-draws" type="checkbox"> Draw with finger
+      </label>
+      <span id="tool-hint" class="muted small"></span>
+    </div>
+
+    <div id="viewer" tabindex="0">
+      <div id="pages"></div>
+    </div>
+  </section>
+
+  <!-- Opening / busy -->
+  <div id="busy" hidden><div class="busy-card"><div class="spinner"></div><span id="busy-text">Opening…</span></div></div>
+
+  <!-- Dialogs -->
+  <dialog id="password-dlg">
+    <form method="dialog">
+      <h3>Password needed</h3>
+      <p id="password-msg"></p>
+      <p id="password-wrong" class="error" hidden>That password didn't work.</p>
+      <input id="password-input" type="password" autocomplete="off" placeholder="Password">
+      <div class="actions">
+        <button value="cancel" class="text-btn">Cancel</button>
+        <button value="ok" class="primary">Open</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="text-dlg">
+    <form method="dialog">
+      <h3 id="text-dlg-title">Add text</h3>
+      <textarea id="text-input" rows="4" placeholder="Type your note"></textarea>
+      <div class="row" id="text-swatches"></div>
+      <label class="row">Size <input id="text-size" type="range" min="8" max="40" step="1"> <span id="text-size-value" class="num"></span></label>
+      <div class="actions">
+        <button value="delete" id="text-delete" class="text-btn danger">Delete</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="text-btn">Cancel</button>
+        <button value="ok" class="primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dlg">
+    <form method="dialog">
+      <h3 id="confirm-title"></h3>
+      <p id="confirm-msg"></p>
+      <div class="actions">
+        <button value="discard" id="confirm-discard" class="text-btn danger">Don't save</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="text-btn">Cancel</button>
+        <button value="save" class="primary" id="confirm-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="info-dlg">
+    <form method="dialog">
+      <h3 id="info-title"></h3>
+      <div id="info-msg"></div>
+      <div class="actions"><span class="spacer"></span><button value="ok" class="primary">OK</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" hidden></div>
+  <div id="drop-hint" hidden>Drop the PDF to open it</div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
